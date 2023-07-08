@@ -1,5 +1,4 @@
-from __future__ import print_function
-from tkinter import *
+from tkinter import Tk, Label, Text, Button, Entry
 import utils
 from client import Client
 
@@ -34,13 +33,10 @@ class EmailViewerGUI:
         self.body_text = Text(self.window, width=80, height=20)
         self.body_text.pack()
 
-        self.previous_button = Button(self.window, text="Previous",
-                                      command=self.show_previous_email,
-                                      state=DISABLED)
+        self.previous_button = Button(self.window, text="Previous", command=self.show_previous_email, state="disabled")
         self.previous_button.pack(pady=10)
 
-        self.next_button = Button(self.window, text="Next",
-                                  command=self.show_next_email)
+        self.next_button = Button(self.window, text="Next", command=self.show_next_email)
         self.next_button.pack(pady=10)
 
         self.show_current_email()
@@ -72,28 +68,27 @@ class EmailViewerGUI:
             self.sender_label.configure(text=f"From: {sender}")
             self.date_label.configure(text=f"Date: {date}")
             self.subject_label.configure(text=f"Subject: {subject}")
-            self.body_text.delete(1.0, END)
-            self.body_text.insert(END, body)
+            self.body_text.delete(1.0, "end")
+            self.body_text.insert("end", body)
 
-            # Enable/Disable Previous button
-            if self.current_email_index == 0:
-                self.previous_button.configure(state=DISABLED)
+            # Enable/Disable previous button
+            if self.current_email_index > 0:
+                self.previous_button.configure(state="normal")
             else:
-                self.previous_button.configure(state=NORMAL)
+                self.previous_button.configure(state="disabled")
 
-            # Enable/Disable Next button
-            if self.current_email_index == len(self.email_ids):
-                self.next_button.configure(state=DISABLED)
+            # Enable/Disable next button
+            if self.current_email_index < len(self.email_ids):
+                self.next_button.configure(state="normal")
             else:
-                self.next_button.configure(state=NORMAL)
+                self.next_button.configure(state="disabled")
         else:
             self.sender_label.configure(text="")
             self.date_label.configure(text="")
             self.subject_label.configure(text="")
-            self.body_text.delete(1.0, END)
-            self.body_text.insert(END, "No more emails to display.")
-            # Disable Next button
-            self.next_button.configure(state=DISABLED)
+            self.body_text.delete(1.0, "end")
+            self.body_text.insert("end", "No more emails to display.")
+            self.next_button.configure(state="disabled")
 
     def show_next_email(self):
         self.current_email_index += 1
@@ -104,7 +99,37 @@ class EmailViewerGUI:
         self.show_current_email()
 
 
+def open_email_viewer(filter_addresses, search_query):
+    EmailViewerGUI(filter_addresses, search_query)
+
+
+def open_main_menu():
+    def handle_submit():
+        addresses = address_entry.get()
+        query = query_entry.get()
+        filter_addresses = addresses.split(",")
+        search_query = query.strip()
+        root.destroy()
+        open_email_viewer(filter_addresses, search_query)
+
+    root = Tk()
+    root.title("Gmail Zapper - Main Menu")
+
+    address_label = Label(root, text="Enter email addresses (comma-separated):")
+    address_label.pack(pady=10)
+    address_entry = Entry(root)
+    address_entry.pack()
+
+    query_label = Label(root, text="Enter search query (optional):")
+    query_label.pack(pady=10)
+    query_entry = Entry(root)
+    query_entry.pack()
+
+    submit_button = Button(root, text="Submit", command=handle_submit)
+    submit_button.pack(pady=20)
+
+    root.mainloop()
+
+
 if __name__ == '__main__':
-    FILTER_FROM_ADDRESSES = ['support@keychron.de']  # List of sender addresses to filter
-    SEARCH_QUERY = ''  # Search query for email title and body
-    EmailViewerGUI(FILTER_FROM_ADDRESSES, SEARCH_QUERY)
+    open_main_menu()
