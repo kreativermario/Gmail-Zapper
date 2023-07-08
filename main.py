@@ -6,7 +6,7 @@ from client import Client
 logger = utils.setup_logger("status.log")
 
 
-class EmailViewerGUI:
+class ZapperGUI:
     def __init__(self, filter_addresses, search_query):
         self.client = Client()
         self.emails = self.client.fetch_emails(filter_addresses, search_query)
@@ -14,7 +14,7 @@ class EmailViewerGUI:
         self.current_email_index = 0
 
         self.window = Tk()
-        self.window.title("Email Viewer")
+        self.window.title("Gmail Zapper!")
 
         self.email_label = Label(self.window, text="Email", font=("Helvetica", 16, "bold"))
         self.email_label.pack(pady=10)
@@ -107,4 +107,4 @@ class EmailViewerGUI:
 if __name__ == '__main__':
     FILTER_FROM_ADDRESSES = ['support@keychron.de']  # List of sender addresses to filter
     SEARCH_QUERY = ''  # Search query for email title and body
-    EmailViewerGUI(FILTER_FROM_ADDRESSES, SEARCH_QUERY)
+    ZapperGUI(FILTER_FROM_ADDRESSES, SEARCH_QUERY)
