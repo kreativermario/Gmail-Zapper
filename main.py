@@ -1,19 +1,19 @@
-from tkinter import Tk, Label, Text, Button, Entry
+from tkinter import Tk, Label, Text, Button, Entry, ttk, messagebox
 import utils
 from client import Client
 
-logger = utils.setup_logger("status.log")
+logger = utils.setup_logger("status.log", __name__)
 
 
-class EmailViewerGUI:
-    def __init__(self, filter_addresses, search_query):
-        self.client = Client()
-        self.emails = self.client.fetch_emails(filter_addresses, search_query)
-        self.email_ids = [email['id'] for email in self.emails]
+class EmailViewerMenu:
+    def __init__(self, parent, client):
+        self.client = client
+        self.emails = []
+        self.email_ids = []
         self.current_email_index = 0
 
-        self.window = Tk()
-        self.window.title("Email Viewer")
+        self.window = ttk.Frame(parent)
+        parent.add(self.window, text="Email Viewer")
 
         self.email_label = Label(self.window, text="Email", font=("Helvetica", 16, "bold"))
         self.email_label.pack(pady=10)
@@ -39,9 +39,11 @@ class EmailViewerGUI:
         self.next_button = Button(self.window, text="Next", command=self.show_next_email)
         self.next_button.pack(pady=10)
 
+    def set_emails(self, emails):
+        self.emails = emails
+        self.email_ids = [email['id'] for email in self.emails]
+        self.current_email_index = 0
         self.show_current_email()
-
-        self.window.mainloop()
 
     def show_current_email(self):
         if self.current_email_index < len(self.email_ids):
@@ -51,37 +53,24 @@ class EmailViewerGUI:
             body = utils.get_email_body(payload)
             headers = message['payload']['headers']
 
-            sender = ""
-            date = ""
-            subject = ""
+            header_mapping = {
+                'From': self.sender_label,
+                'Date': self.date_label,
+                'Subject': self.subject_label
+            }
 
             for header in headers:
                 name = header['name']
                 value = header['value']
-                if name == 'From':
-                    sender = value
-                elif name == 'Date':
-                    date = value
-                elif name == 'Subject':
-                    subject = value
+                if name in header_mapping:
+                    label = header_mapping[name]
+                    label.configure(text=f"{name}: {value}")
 
-            self.sender_label.configure(text=f"From: {sender}")
-            self.date_label.configure(text=f"Date: {date}")
-            self.subject_label.configure(text=f"Subject: {subject}")
             self.body_text.delete(1.0, "end")
             self.body_text.insert("end", body)
 
-            # Enable/Disable previous button
-            if self.current_email_index > 0:
-                self.previous_button.configure(state="normal")
-            else:
-                self.previous_button.configure(state="disabled")
-
-            # Enable/Disable next button
-            if self.current_email_index < len(self.email_ids):
-                self.next_button.configure(state="normal")
-            else:
-                self.next_button.configure(state="disabled")
+            self.previous_button.configure(state="normal" if self.current_email_index > 0 else "disabled")
+            self.next_button.configure(state="normal" if self.current_email_index < len(self.email_ids) else "disabled")
         else:
             self.sender_label.configure(text="")
             self.date_label.configure(text="")
@@ -99,37 +88,62 @@ class EmailViewerGUI:
         self.show_current_email()
 
 
-def open_email_viewer(filter_addresses, search_query):
-    EmailViewerGUI(filter_addresses, search_query)
+class FetchEmailMenu:
+    def __init__(self, parent, client, email_viewer):
+        self.parent = parent
+        self.client = client
+        self.email_viewer = email_viewer
 
+        self.page = ttk.Frame(parent)
+        parent.insert(0, self.page, text="Fetch Email")  # Insert at index 0
 
-def open_main_menu():
-    def handle_submit():
-        addresses = address_entry.get()
-        query = query_entry.get()
+        self.address_label = Label(self.page, text="Enter email addresses (comma-separated):")
+        self.address_label.pack(pady=10)
+        self.address_entry = Entry(self.page)
+        self.address_entry.pack()
+
+        self.query_label = Label(self.page, text="Enter search query (optional):")
+        self.query_label.pack(pady=10)
+        self.query_entry = Entry(self.page)
+        self.query_entry.pack()
+
+        self.submit_button = Button(self.page, text="Submit", command=self.handle_submit)
+        self.submit_button.pack(pady=20)
+
+    def handle_submit(self):
+        addresses = self.address_entry.get()
+        query = self.query_entry.get()
         filter_addresses = addresses.split(",")
         search_query = query.strip()
-        root.destroy()
-        open_email_viewer(filter_addresses, search_query)
 
-    root = Tk()
-    root.title("Gmail Zapper - Main Menu")
+        emails = self.client.fetch_emails(filter_addresses, search_query)
+        self.email_viewer.set_emails(emails)
+        self.parent.select(1)  # Switch to Email Viewer page
 
-    address_label = Label(root, text="Enter email addresses (comma-separated):")
-    address_label.pack(pady=10)
-    address_entry = Entry(root)
-    address_entry.pack()
 
-    query_label = Label(root, text="Enter search query (optional):")
-    query_label.pack(pady=10)
-    query_entry = Entry(root)
-    query_entry.pack()
+class GmailZapperApp:
+    def __init__(self):
+        self.root = Tk()
+        self.root.title("Gmail Zapper")
 
-    submit_button = Button(root, text="Submit", command=handle_submit)
-    submit_button.pack(pady=20)
+        self.notebook = ttk.Notebook(self.root)
 
-    root.mainloop()
+        self.client = Client()  # Create the Gmail client
+
+        self.email_viewer = EmailViewerMenu(self.notebook, self.client)
+        self.fetch_email_menu = FetchEmailMenu(self.notebook, self.client,
+                                               self.email_viewer)
+
+        self.notebook.add(self.fetch_email_menu.page, text="Fetch Email")
+        self.notebook.add(self.email_viewer.window, text="Email Viewer")
+
+        self.notebook.select(0)
+        self.notebook.pack()
+
+    def run(self):
+        self.root.mainloop()
 
 
 if __name__ == '__main__':
-    open_main_menu()
+    app = GmailZapperApp()
+    app.run()

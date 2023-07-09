@@ -8,7 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-logger = utils.setup_logger("status.log")
+logger = utils.setup_logger("status.log", __name__)
 
 
 class Client:

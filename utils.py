@@ -1,10 +1,12 @@
 import base64
+import colorlog
 import logging
 
 
-def setup_logger(log_file):
+def setup_logger(log_file, class_name):
+
     # Create a logger and set its log level
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(class_name)
     logger.setLevel(logging.DEBUG)
 
     # Create a file handler and set its log level
@@ -13,10 +15,22 @@ def setup_logger(log_file):
 
     # Create a console handler and set its log level
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)
 
-    # Create a formatter and add it to the handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Create a colored formatter
+    formatter = colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        log_colors={
+            'DEBUG': 'green',
+            'INFO': 'blue',
+            'WARNING': 'yellow',
+            'ERROR': 'red'
+        },
+        reset=True,
+        style='%'
+    )
+
+    # Add the formatter to the handlers
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
 
@@ -32,8 +46,7 @@ def get_email_body(payload):
         # If email has parts, check for 'text/plain' or 'text/html' parts
         data = None
         for part in payload['parts']:
-            if part['mimeType'] == 'text/plain' or \
-                    part['mimeType'] == 'text/html':
+            if part['mimeType'] == 'text/plain' or part['mimeType'] == 'text/html':
                 data = part['body'].get('data')
             if data:
                 return base64.urlsafe_b64decode(data).decode()
